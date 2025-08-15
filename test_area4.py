@@ -1,33 +1,52 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
+import time
 
+#streamlit run test_area4.py
 
-APP_PASSWORD = "Pranav@GosfordHS1234"
+VALID_USERS = {
+    "Pranav": "Pranav@GosfordHS1234",
+    "Admin": "AdminPass123",
+    "Guest": "GuestAccess"
+}
 
 def show_login():
-    # Gate the entire login interface
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
 
     if not st.session_state.logged_in:
         st.title("Sign in to Access Data")
-        st.caption("Access is restricted. Enter the passcode to continue.")
-        
+        st.caption("Access is restricted. Enter your username and passcode to continue.")
+
+        username = st.text_input("Username")
         pwd = st.text_input("Passcode", type="password")
         login_clicked = st.button("Sign in", use_container_width=True)
 
         if login_clicked:
-            if pwd == APP_PASSWORD:
+            if username in VALID_USERS and pwd == VALID_USERS[username]:
+                with st.spinner("Checking Login Details..."):
+                    time.sleep(3)
                 st.session_state.logged_in = True
+                with st.spinner("Logging In..."):
+                    time.sleep(1.5)
+                st.session_state.username = username
                 st.rerun()
             else:
-                st.error("Incorrect passcode. Please try again.")
+                with st.spinner("Checking Login Details..."):
+                    time.sleep(3)
+                st.error("Incorrect username or passcode. Please try again.")
 
-        st.stop()  # Prevent rest of app
+        st.stop()
+
+show_login()
+
+if "username" in st.session_state:
+    st.success(f"Welcome, {st.session_state.username}!")
 
 # 1) Gate the app
 show_login()
+
 
 @st.cache_data
 def load_data():
@@ -38,6 +57,10 @@ def load_data():
     qld_temp = pd.read_csv("Average QLD temperatures.csv")
     act_temp = pd.read_csv("Average ACT temperatures.csv")
     return emissions, nsw_temp, wa_temp, vic_temp, qld_temp, act_temp
+
+"""
+Everything Below is me just setting up the data for the actual app
+"""
 
 # Load all at once
 emissions_df, nsw_temp_df, wa_temp_df, vic_temp_df, qld_temp_df, act_temp_df = load_data()
@@ -55,7 +78,7 @@ wa_temp_df = wa_temp_df.rename(columns={'Average Temperature (WA)': 'WA Temperat
 wa_df = pd.merge(wa_emissions, wa_temp_df, on='Year')
 
 # ─────────────────────────────────────────────────────────────
-# Prepare VIC data with safe renaming
+# Prepare VIC data
 vic_emissions = emissions_df[emissions_df['Location'] == 'VIC'].rename(columns={'Total (MT)': 'VIC Emissions'})
 for col in vic_temp_df.columns:
     if 'Temperature' in col and 'VIC' in col:
@@ -64,7 +87,7 @@ for col in vic_temp_df.columns:
 vic_df = pd.merge(vic_emissions, vic_temp_df, on='Year')
 
 # ─────────────────────────────────────────────────────────────
-# Prepare QLD data with safe renaming
+# Prepare QLD data
 qld_emissions = emissions_df[emissions_df['Location'] == 'QLD'].rename(columns={'Total (MT)': 'QLD Emissions'})
 for col in qld_temp_df.columns:
     if 'Temperature' in col and 'QLD' in col:
@@ -76,7 +99,6 @@ qld_df = pd.merge(qld_emissions, qld_temp_df, on='Year')
 # Prepare ACT data
 act_emissions = emissions_df[emissions_df['Location'] == 'ACT'].rename(columns={'Total (MT)': 'ACT Emissions'})
 
-# Safely rename ACT temperature column
 for col in act_temp_df.columns:
     if 'Temperature' in col and 'ACT' in col:
         act_temp_df = act_temp_df.rename(columns={col: 'ACT Temperature'})
@@ -85,11 +107,22 @@ for col in act_temp_df.columns:
 act_df = pd.merge(act_emissions, act_temp_df, on='Year')
 
 # ─────────────────────────────────────────────────────────────
+"""
+Underneath is the sidebar which helps the user choose their preffered state to compare their data.
+"""
+
 # Page selector
+st.sidebar.header("Climate Data")
 page = st.sidebar.radio("Select State", ["NSW", "WA", "VIC", "QLD", "ACT"])
 
+
+"""
+Everything Below here is the actual UI of the APP.
+It shows the columns and the graphs for every single state.
+It compares the temperature of the selected state with the emissions of the selected state. 
+"""
 # ─────────────────────────────────────────────────────────────
-# NSW Page
+# NSW Page (I just copied and pasted this part for the other sections and changed 'NSW' to something else)
 if page == "NSW":
     st.header("NSW Climate Data")
     st.info("This page shows climate data for New South Wales. Use the sidebar to toggle emissions and temperature views.")

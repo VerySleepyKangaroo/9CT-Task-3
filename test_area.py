@@ -1,79 +1,65 @@
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
 
-# streamlit run UI.py
+# ------------------------
+# Session State Defaults
+# ------------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
 
-# 🎉 Welcome popup
-st.toast("👋 Welcome! Hope you have a great time exploring WA climate data.", icon="🌞")
+# ------------------------
+# Top Bar with Login Button
+# ------------------------
+col1, col2 = st.columns([6, 1])  # More space on left for title
+with col2:
+    if not st.session_state.logged_in:
+        if st.button("Login", use_container_width=True):
+            st.session_state.show_login = True
+    else:
+        if st.button("Logout", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.username = ""
+            st.session_state.show_login = False
+            st.rerun()
 
-# 📝 Instructions
-with st.expander("📘 How to use this app"):
-    st.markdown("""
-    This dashboard lets you explore **Western Australia's temperature and emissions trends** over time.
-
-    ### What you can do:
-    - **View WA Temperature**: See how average temperatures have changed.
-    - **View WA Emissions**: Track greenhouse gas emissions over the years.
-    - **Compare Both**: See temperature and emissions side by side.
-
-    ### How to get started:
-    1. Use the dropdown menu to choose what data to view.
-    2. Scroll down to see the chart.
-    3. Want to dig deeper? Try comparing trends or adding filters!
-
-    Enjoy your exploration!
-    """)
-
-
-# Load WA temperature data
-wa_temp_df = pd.read_csv("Average WA temperatures.csv")
-wa_temp_df.rename(columns={"Average Temperature (WA)": "WA Temperature"}, inplace=True)
-
-# Load emissions data
-emissions_df = pd.read_csv("Emissions_Data.csv")
-
-# Filter for WA emissions
-wa_emissions_df = emissions_df[emissions_df["Location"] == "WA"][["Year", "Total (MT)"]]
-wa_emissions_df.rename(columns={"Total (MT)": "WA Emissions"}, inplace=True)
-
-# Merge temperature and emissions data
-combined_df = pd.merge(wa_temp_df, wa_emissions_df, on="Year")
-
-# Sidebar selection
-view_option = st.selectbox(
-    "Choose data to view:",
-    ["WA Temperature", "WA Emissions", "Compare Both"]
+# ------------------------
+# Centered Title
+# ------------------------
+st.markdown(
+    """
+    <div style='text-align: center; padding-top: 50px;'>
+        <h1>🌏 Climate & Emissions Dashboard</h1>
+        <p>Compare average temperatures with emissions data for Australian states</p>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
-# Display header
-st.subheader(f"Visualizing: {view_option}")
+# ------------------------
+# Optional Login Form Popup
+# ------------------------
+if st.session_state.get("show_login", False) and not st.session_state.logged_in:
+    st.write("---")
+    st.subheader("Sign In")
+    username = st.text_input("Username")
+    pwd = st.text_input("Passcode", type="password")
 
-# Plotting
-fig, ax1 = plt.subplots()
+    if st.button("Sign in", use_container_width=True):
+        if username == "Pranav" and pwd == "Pranav@GosfordHS1234":
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.session_state.show_login = False
+            st.success(f"Welcome, {username}!")
+            st.rerun()
+        else:
+            st.error("Incorrect username or password")
 
-if view_option == "WA Temperature":
-    ax1.plot(wa_temp_df["Year"], wa_temp_df["WA Temperature"], color="tab:red")
-    ax1.set_ylabel("Temperature (°C)", color="tab:red")
-    ax1.set_xlabel("Year")
-    ax1.tick_params(axis="y", labelcolor="tab:red")
-
-elif view_option == "WA Emissions":
-    ax1.plot(wa_emissions_df["Year"], wa_emissions_df["WA Emissions"], color="tab:blue")
-    ax1.set_ylabel("Emissions (MtCO₂e)", color="tab:blue")
-    ax1.set_xlabel("Year")
-    ax1.tick_params(axis="y", labelcolor="tab:blue")
-
-else:  # Compare Both
-    ax1.set_xlabel("Year")
-    ax1.set_ylabel("Temperature (°C)", color="tab:red")
-    ax1.plot(combined_df["Year"], combined_df["WA Temperature"], color="tab:red", label="Temperature")
-    ax1.tick_params(axis="y", labelcolor="tab:red")
-
-    ax2 = ax1.twinx()
-    ax2.set_ylabel("Emissions (MtCO₂e)", color="tab:blue")
-    ax2.plot(combined_df["Year"], combined_df["WA Emissions"], color="tab:blue", label="Emissions")
-    ax2.tick_params(axis="y", labelcolor="tab:blue")
-
-fig.tight_layout()
-st.pyplot(fig)
+# ------------------------
+# Show data if logged in
+# ------------------------
+if st.session_state.logged_in:
+    st.info(f"Logged in as {st.session_state.username}")
+    if st.button("View Climate Data and Emissions Data", use_container_width=True):
+        # Place your full NSW/WA/VIC/QLD/ACT data display code here
+        st.write("🔍 Data visualisation loading...")
