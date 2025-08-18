@@ -3,12 +3,14 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import time
 
-#streamlit run test_area4.py
+
+# Copy and Paste this into the terminal:
+
+# streamlit run UI.py
 
 VALID_USERS = {
-    "Pranav": "Pranav@GosfordHS1234",
-    "Admin": "AdminPass123",
-    "Guest": "GuestAccess"
+    "Pranav": "123",
+    "MrGroom": "123"
 }
 
 def show_login():
@@ -48,7 +50,7 @@ if "username" in st.session_state:
 show_login()
 
 
-@st.cache_data
+@st.cache_data # My code either took too long to load or just would not load so I had to search up how to solve the problem and I found that "cache_data" can help increase the loading speed.
 def load_data():
     emissions = pd.read_csv("Emissions_Data.csv")
     nsw_temp = pd.read_csv("Average NSW temperatures.csv")
@@ -56,28 +58,30 @@ def load_data():
     vic_temp = pd.read_csv("Average VIC temperatures.csv")
     qld_temp = pd.read_csv("Average QLD temperatures.csv")
     act_temp = pd.read_csv("Average ACT temperatures.csv")
-    return emissions, nsw_temp, wa_temp, vic_temp, qld_temp, act_temp
+    sa_temp = pd.read_csv("Average SA temperatures.csv")
+    nt_temp = pd.read_csv("Average NT temperatures.csv")
+    return emissions, nsw_temp, wa_temp, vic_temp, qld_temp, act_temp, sa_temp, nt_temp
 
-"""
-Everything Below is me just setting up the data for the actual app
-"""
+
+# Everything Below is me just setting up the data for the actual app
+
 
 # Load all at once
-emissions_df, nsw_temp_df, wa_temp_df, vic_temp_df, qld_temp_df, act_temp_df = load_data()
+emissions_df, nsw_temp_df, wa_temp_df, vic_temp_df, qld_temp_df, act_temp_df, sa_temp_df, nt_temp_df = load_data()
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 # Prepare NSW data
 nsw_emissions = emissions_df[emissions_df['Location'] == 'NSW'].rename(columns={'Total (MT)': 'NSW Emissions'})
 nsw_temp_df = nsw_temp_df.rename(columns={'Average Temperature (NSW)': 'NSW Temperature'})
 nsw_df = pd.merge(nsw_emissions, nsw_temp_df, on='Year')
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 # Prepare WA data
 wa_emissions = emissions_df[emissions_df['Location'] == 'WA'].rename(columns={'Total (MT)': 'WA Emissions'})
 wa_temp_df = wa_temp_df.rename(columns={'Average Temperature (WA)': 'WA Temperature'})
 wa_df = pd.merge(wa_emissions, wa_temp_df, on='Year')
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 # Prepare VIC data
 vic_emissions = emissions_df[emissions_df['Location'] == 'VIC'].rename(columns={'Total (MT)': 'VIC Emissions'})
 for col in vic_temp_df.columns:
@@ -86,7 +90,7 @@ for col in vic_temp_df.columns:
         break
 vic_df = pd.merge(vic_emissions, vic_temp_df, on='Year')
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 # Prepare QLD data
 qld_emissions = emissions_df[emissions_df['Location'] == 'QLD'].rename(columns={'Total (MT)': 'QLD Emissions'})
 for col in qld_temp_df.columns:
@@ -95,7 +99,7 @@ for col in qld_temp_df.columns:
         break
 qld_df = pd.merge(qld_emissions, qld_temp_df, on='Year')
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 # Prepare ACT data
 act_emissions = emissions_df[emissions_df['Location'] == 'ACT'].rename(columns={'Total (MT)': 'ACT Emissions'})
 
@@ -106,26 +110,60 @@ for col in act_temp_df.columns:
 
 act_df = pd.merge(act_emissions, act_temp_df, on='Year')
 
-# ─────────────────────────────────────────────────────────────
-"""
-Underneath is the sidebar which helps the user choose their preffered state to compare their data.
-"""
+# -------------------------------------------------------------
+# Prepare SA data
+sa_emissions = emissions_df[emissions_df['Location'] == 'SA'].rename(columns={'Total (MT)': 'SA Emissions'})
+
+for col in sa_temp_df.columns:
+    if 'Temperature' in col and 'SA' in col:
+        sa_temp_df = sa_temp_df.rename(columns={col: 'SA Temperature'})
+        break
+
+sa_df = pd.merge(sa_emissions, sa_temp_df, on='Year')
+
+# -------------------------------------------------------------
+# Prepare NT datas
+nt_emissions = emissions_df[emissions_df['Location'] == 'NT'].rename(columns={'Total (MT)': 'NT Emissions'})
+
+# Clean and rename NT temperature column
+nt_temp_df.columns = nt_temp_df.columns.str.strip()
+for col in nt_temp_df.columns:
+    if 'Temperature' in col and 'NT' in col:
+        nt_temp_df = nt_temp_df.rename(columns={col: 'NT Temperature'})
+        break
+
+# Convert 'Year' in both DataFrames to int
+nt_emissions['Year'] = pd.to_numeric(nt_emissions['Year'], errors='coerce').astype('Int64')
+nt_temp_df['Year'] = pd.to_numeric(nt_temp_df['Year'], errors='coerce').astype('Int64')
+
+# Drop rows with missing years (if any)
+nt_emissions = nt_emissions.dropna(subset=['Year'])
+nt_temp_df = nt_temp_df.dropna(subset=['Year'])
+
+# Merge
+nt_df = pd.merge(nt_emissions, nt_temp_df, on='Year')
+
+# -------------------------------------------------------------
+
+
+# Underneath is the sidebar which helps the user choose their preffered state to compare their data.
+
 
 # Page selector
 st.sidebar.header("Climate Data")
-page = st.sidebar.radio("Select State", ["NSW", "WA", "VIC", "QLD", "ACT"])
+page = st.sidebar.radio("Select State", ["NSW", "WA", "VIC", "QLD", "ACT", "SA", "NT"])
 
 
-"""
-Everything Below here is the actual UI of the APP.
-It shows the columns and the graphs for every single state.
-It compares the temperature of the selected state with the emissions of the selected state. 
-"""
-# ─────────────────────────────────────────────────────────────
+
+# Everything Below here is the actual UI of the APP.
+# It shows the columns and the graphs for every single state.
+# It compares the temperature of the selected state with the emissions of the selected state. 
+
+# -------------------------------------------------------------
 # NSW Page (I just copied and pasted this part for the other sections and changed 'NSW' to something else)
 if page == "NSW":
     st.header("NSW Climate Data")
-    st.info("This page shows climate data for New South Wales. Use the sidebar to toggle emissions and temperature views.")
+    st.info("This page shows climate data for New South Wales. Use the sidebar to view emissions and temperature.")
 
     st.sidebar.subheader("NSW Options")
     show_nsw_emissions = st.sidebar.checkbox("Show NSW Emissions")
@@ -163,7 +201,7 @@ if page == "NSW":
 # WA Page
 elif page == "WA":
     st.header("WA Climate Data")
-    st.info("This page shows climate data for Western Australia. Use the sidebar to toggle emissions and temperature views.")
+    st.info("This page shows climate data for Western Australia. Use the sidebar to view emissions and temperature.")
 
     st.sidebar.subheader("WA Options")
     show_wa_emissions = st.sidebar.checkbox("Show WA Emissions")
@@ -201,7 +239,7 @@ elif page == "WA":
 # VIC Page
 elif page == "VIC":
     st.header("VIC Climate Data")
-    st.info("This page shows climate data for Victoria. Use the sidebar to toggle emissions and temperature views.")
+    st.info("This page shows climate data for Victoria. Use the sidebar to view emissions and temperature.")
 
     st.sidebar.subheader("VIC Options")
     show_vic_emissions = st.sidebar.checkbox("Show VIC Emissions")
@@ -239,7 +277,7 @@ elif page == "VIC":
 # QLD Page
 elif page == "QLD":
     st.header("QLD Climate Data")
-    st.info("This page shows climate data for Queensland. Use the sidebar to toggle emissions and temperature views.")
+    st.info("This page shows climate data for Queensland. Use the sidebar to view emissions and temperature.")
 
     st.sidebar.subheader("QLD Options")
     show_qld_emissions = st.sidebar.checkbox("Show QLD Emissions")
@@ -277,7 +315,7 @@ elif page == "QLD":
 # ACT Page
 elif page == "ACT":
     st.header("ACT Climate Data")
-    st.info("This page shows climate data for the Australian Capital Territory. Use the sidebar to toggle emissions and temperature views.")
+    st.info("This page shows climate data for the Australian Capital Territory. Use the sidebar to view emissions and temperature.")
 
     st.sidebar.subheader("ACT Options")
     show_act_emissions = st.sidebar.checkbox("Show ACT Emissions")
@@ -308,6 +346,82 @@ elif page == "ACT":
             ax2.tick_params(axis='y', labelcolor='magenta')
 
         plt.title('ACT Emissions vs Temperature Over Time')
+        fig.tight_layout()
+        st.pyplot(fig)
+
+# ─────────────────────────────────────────────────────────────
+# SA Page
+elif page == "SA":
+    st.header("SA Climate Data")
+    st.info("This page shows climate data for South Australia. Use the sidebar to view emissions and temperature.")
+
+    st.sidebar.subheader("SA Options")
+    show_sa_emissions = st.sidebar.checkbox("Show SA Emissions")
+    show_sa_temperature = st.sidebar.checkbox("Show SA Temperature")
+
+    sa_columns = ['Year']
+    if show_sa_emissions:
+        sa_columns.append('SA Emissions')
+    if show_sa_temperature:
+        sa_columns.append('SA Temperature')
+
+    st.subheader("SA Data Table")
+    st.dataframe(sa_df[sa_columns])
+
+    if show_sa_emissions or show_sa_temperature:
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        ax1.set_xlabel('Year')
+
+        if show_sa_emissions:
+            ax1.set_ylabel('SA Emissions (Mt CO₂e)', color='orange')
+            ax1.plot(sa_df['Year'], sa_df['SA Emissions'], color='orange', label='SA Emissions')
+            ax1.tick_params(axis='y', labelcolor='orange')
+
+        if show_sa_temperature:
+            ax2 = ax1.twinx()
+            ax2.set_ylabel('SA Avg Temperature (°C)', color='forestgreen')
+            ax2.plot(sa_df['Year'], sa_df['SA Temperature'], color='forestgreen', label='SA Temperature')
+            ax2.tick_params(axis='y', labelcolor='forestgreen')
+
+        plt.title('SA Emissions vs Temperature Over Time')
+        fig.tight_layout()
+        st.pyplot(fig)
+
+# ─────────────────────────────────────────────────────────────
+# NT Page
+elif page == "NT":
+    st.header("NT Climate Data")
+    st.info("This page shows climate data for Northern Territory. Use the sidebar to view emissions and temperature.")
+
+    st.sidebar.subheader("NT Options")
+    show_nt_emissions = st.sidebar.checkbox("Show NT Emissions")
+    show_nt_temperature = st.sidebar.checkbox("Show NT Temperature")
+
+    nt_columns = ['Year']
+    if show_nt_emissions:
+        nt_columns.append('NT Emissions')
+    if show_nt_temperature:
+        nt_columns.append('NT Temperature')
+
+    st.subheader("NT Data Table")
+    st.dataframe(nt_df[nt_columns])
+
+    if show_nt_emissions or show_nt_temperature:
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        ax1.set_xlabel('Year')
+
+        if show_nt_emissions:
+            ax1.set_ylabel('NT Emissions (Mt CO₂e)', color='crimson')
+            ax1.plot(nt_df['Year'], nt_df['NT Emissions'], color='crimson', label='NT Emissions')
+            ax1.tick_params(axis='y', labelcolor='crimson')
+
+        if show_nt_temperature:
+            ax2 = ax1.twinx()
+            ax2.set_ylabel('NT Avg Temperature (°C)', color='purple')
+            ax2.plot(nt_df['Year'], nt_df['NT Temperature'], color='purple', label='NT Temperature')
+            ax2.tick_params(axis='y', labelcolor='purple')
+
+        plt.title('NT Emissions vs Temperature Over Time')
         fig.tight_layout()
         st.pyplot(fig)
 
